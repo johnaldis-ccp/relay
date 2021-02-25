@@ -335,36 +335,38 @@ class Executor {
       ) {
         // Skip extensions-only payloads
         return;
-      } else if (response.data == null) {
-        // Error if any other payload in the batch is missing data, regardless of whether
-        // it had `errors` or not.
+      } else {
         const errors =
           response.hasOwnProperty('errors') && response.errors != null
             ? response.errors
             : null;
-        const messages = errors
-          ? errors.map(({message}) => message).join('\n')
-          : '(No errors)';
-        const error = RelayError.create(
-          'RelayNetwork',
-          'No data returned for operation `' +
-            this._operation.request.node.params.name +
-            '`, got error(s):\n' +
-            messages +
-            '\n\nSee the error `source` property for more information.',
-        );
-        (error: $FlowFixMe).source = {
-          errors,
-          operation: this._operation.request.node,
-          variables: this._operation.request.variables,
-        };
-        // In V8, Error objects keep the closure scope chain alive until the
-        // err.stack property is accessed.
-        error.stack;
-        throw error;
-      } else {
-        const responseWithData: GraphQLResponseWithData = (response: $FlowFixMe);
-        results.push(responseWithData);
+        if (errors || response.data == null) {
+          // Error if any other payload in the batch is missing data, even if
+          // it didn't have `errors`.
+          const messages = errors
+            ? errors.map(({message}) => message).join('\n')
+            : '(No errors)';
+          const error = RelayError.create(
+            'RelayNetwork',
+            'No data returned for operation `' +
+              this._operation.request.node.params.name +
+              '`, got error(s):\n' +
+              messages +
+              '\n\nSee the error `source` property for more information.',
+          );
+          (error: $FlowFixMe).source = {
+            errors,
+            operation: this._operation.request.node,
+            variables: this._operation.request.variables,
+          };
+          // In V8, Error objects keep the closure scope chain alive until the
+          // err.stack property is accessed.
+          error.stack;
+          throw error;
+        } else {
+          const responseWithData: GraphQLResponseWithData = (response: $FlowFixMe);
+          results.push(responseWithData);
+        }
       }
     });
     return results;
